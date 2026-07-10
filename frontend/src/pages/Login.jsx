@@ -1,121 +1,222 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
+
 import { useAuth } from "../context/AuthContext";
 import { loginUser } from "../services/api";
-import { RiFlashlightLine, RiEyeLine, RiEyeOffLine, RiMailLine, RiLockLine } from "react-icons/ri";
+import AuthVisual from "../components/auth/AuthVisual";
+
+import {
+  RiArrowRightLine,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiFlashlightLine,
+  RiLockLine,
+  RiMailLine,
+  RiShieldCheckLine,
+} from "react-icons/ri";
 
 export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [showPass, setShowPass] = useState(false);
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setError("");
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const email = form.email.trim();
+
+    if (!email || !form.password) {
+      toast.error("Please enter your email and password.");
+      return;
+    }
+
     setLoading(true);
-    setError("");
+    const loadingToast = toast.loading("Signing you in...");
+
     try {
-      const res = await loginUser(form);
-      login(res.data.user, res.data.token);
+      const response = await loginUser({
+        email,
+        password: form.password,
+      });
+
+      login(response.data.user, response.data.token);
+
+      toast.success(`Welcome back, ${response.data.user.name}!`, {
+        id: loadingToast,
+      });
+
       navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Try again.");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Login failed. Please check your credentials.",
+        { id: loadingToast },
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* BG effects */}
-      <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-accent-purple/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 w-72 h-72 bg-accent-indigo/10 rounded-full blur-3xl pointer-events-none" />
+    <main className="auth-page">
+      <div className="auth-shell">
+        <AuthVisual mode="login" />
 
-      <div className="w-full max-w-md animate-slide-up">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-gradient-to-br from-accent-purple to-accent-indigo rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-glow">
-            <RiFlashlightLine className="text-white text-2xl" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Welcome back</h1>
-          <p className="text-white/50 text-sm">Continue your learning journey</p>
-        </div>
+        <section className="auth-form-panel">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.5,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="auth-form-wrapper"
+          >
+            <div className="auth-mobile-brand">
+              <div className="auth-brand-icon">
+                <RiFlashlightLine />
+              </div>
 
-        {/* Card */}
-        <div className="glass-card p-8 rounded-2xl">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-5">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label">Email</label>
-              <div className="relative">
-                <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  className="input-field pl-10"
-                  required
-                />
+              <div>
+                <h1 className="text-lg font-bold">StudyBuddy</h1>
+                <p className="text-xs text-white/50">
+                  Your learning workspace
+                </p>
               </div>
             </div>
 
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <RiLockLine className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                <input
-                  type={showPass ? "text" : "password"}
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="input-field pl-10 pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                >
-                  {showPass ? <RiEyeOffLine /> : <RiEyeLine />}
-                </button>
-              </div>
+            <div className="auth-eyebrow">
+              <span className="auth-status-dot" />
+              Secure student workspace
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </span>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
+            <h1 className="auth-heading">
+              Welcome back to your
+              <span className="auth-heading-gradient"> learning journey.</span>
+            </h1>
 
-          <p className="text-center text-white/40 text-sm mt-6">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-accent-glow hover:text-white transition-colors font-medium">
-              Create one
+            <p className="auth-description">
+              Continue tracking your progress, organizing resources and
+              collaborating with your study partners.
+            </p>
+
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <div>
+                <label htmlFor="email" className="auth-label">
+                  Email address
+                </label>
+
+                <div className="auth-input-wrapper">
+                  <RiMailLine className="auth-input-icon" />
+
+                  <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    className="auth-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="password" className="auth-label">
+                  Password
+                </label>
+
+                <div className="auth-input-wrapper">
+                  <RiLockLine className="auth-input-icon" />
+
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    className="auth-input auth-input-password"
+                    required
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="auth-password-toggle"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? <RiEyeOffLine /> : <RiEyeLine />}
+                  </button>
+                </div>
+              </div>
+
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={loading ? undefined : { y: -1 }}
+                whileTap={loading ? undefined : { scale: 0.99 }}
+                className="auth-submit-button"
+              >
+                {loading ? (
+                  <>
+                    <span className="auth-button-spinner" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Continue to dashboard
+                    <RiArrowRightLine />
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            <div className="auth-security-note">
+              <RiShieldCheckLine className="text-green-600 text-lg shrink-0 mt-0.5" />
+              <p>
+                Your password is securely hashed and protected requests use
+                authenticated access tokens.
+              </p>
+            </div>
+
+            <div className="auth-divider">
+              <span />
+              <p>New to StudyBuddy?</p>
+              <span />
+            </div>
+
+            <Link to="/register" className="auth-secondary-button">
+              Create your free account
+              <RiArrowRightLine />
             </Link>
-          </p>
-        </div>
+          </motion.div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
